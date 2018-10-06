@@ -1,0 +1,22 @@
+{
+  "name": "babelpack",
+  "version": "1.0.0",
+  "description": "Watches folder for changes and transforms it then executes a file",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TimUntersberger/babelpack.git"
+  },
+  "keywords": [
+    "babel"
+  ],
+  "author": "TimUntersberger",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/TimUntersberger/babelpack/issues"
+  },
+  "homepage": "https://github.com/TimUntersberger/babelpack#readme"
+}
