@@ -48,6 +48,8 @@ const rootFile = path.join(outDir, prog.rootFile || "index.js");
 let nodeProcess = null;
 let nodeLocation = which.sync("node");
 
+log("Initializing...");
+
 if (prog.deleteDist) {
   fs.removeSync(outDir);
 }
