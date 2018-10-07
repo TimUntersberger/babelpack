@@ -1,6 +1,8 @@
+#!/usr/bin/env node
+
 const babel = require("@babel/core");
 const path = require("path");
-const fs = require("fs").promises;
+const fs = require("fs");
 const chalk = require("chalk").default;
 const which = require("which");
 const { spawn } = require("child_process");
@@ -26,13 +28,23 @@ prog
     "Don't clear the screen after every compilation"
   )
   .parse(process.argv);
-
-const srcDir = prog.srcDir || "src";
-const outDir = prog.outDir || "dist";
-const rootFile = prog.rootFile || "index.js";
+const srcDir = path.normalize(path.join(process.cwd(), prog.srcDir || "src"));
+const outDir = path.normalize(path.join(process.cwd(), prog.outDir || "dist"));
+const rootFile = path.join(outDir, prog.rootFile || "index.js");
 
 let nodeProcess = null;
 let nodeLocation = which.sync("node");
+
+if (!fs.existsSync(srcDir)) {
+  console.log(
+    `${chalk.red("ERROR:")} Directory ${chalk.bold(srcDir)} doesn't exist!`
+  );
+  return;
+}
+
+if (!fs.existsSync(outDir)) {
+  fs.mkdirSync(outDir);
+}
 
 const log = message => {
   if (!prog.consoleRefreshDisabled) process.stdout.write("\x1Bc");
@@ -42,22 +54,31 @@ const log = message => {
 };
 
 function startProg() {
-  nodeProcess = spawn(nodeLocation, [path.join(outDir, rootFile)]);
+  nodeProcess = spawn(nodeLocation, [rootFile]);
   nodeProcess.stdout.pipe(process.stdout);
   nodeProcess.stderr.pipe(process.stderr);
   process.stdin.pipe(nodeProcess.stdin);
 }
 
 function convertSrcPathToOutPath(filePath) {
-  return filePath.replace(srcDir, outDir).replace(/\.tsx?/, ".js");
+  return path
+    .join(outDir, filePath.replace(srcDir, ""))
+    .replace(/\.tsx?/, ".js");
 }
 
 async function transformFile(filePath) {
-  const buffer = await fs.readFile(filePath);
-  return fs.writeFile(
-    convertSrcPathToOutPath(filePath),
-    babel.transform(buffer, { filename: filePath }).code
-  );
+  return new Promise((resolve, reject) => {
+    const buffer = fs.readFileSync(filePath);
+    try {
+      fs.writeFileSync(
+        convertSrcPathToOutPath(filePath),
+        babel.transform(buffer, { filename: filePath }).code
+      );
+      resolve();
+    } catch (error) {
+      reject(err);
+    }
+  });
 }
 
 function restart(filePath, reason) {
@@ -73,10 +94,12 @@ function restart(filePath, reason) {
 let isReady = false;
 let error = false;
 let compiledFilesCount = 0;
+const watchPath = path.join(srcDir, "/**/*.(js|jsx|ts|tsx)");
 
 chokidar
-  .watch(srcDir, {
-    encoding: "utf8"
+  .watch(watchPath, {
+    encoding: "utf8",
+    ignored: "node_modules/**/*"
   })
   .on("add", filePath => {
     if (isReady) {

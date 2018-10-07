@@ -1,6 +1,6 @@
 {
   "name": "babelpack",
-  "version": "1.0.2",
+  "version": "1.1.1",
   "description": "Watches folder for changes and transforms it then executes a file",
   "main": "index.js",
   "scripts": {
@@ -18,5 +18,14 @@
   "bugs": {
     "url": "https://github.com/TimUntersberger/babelpack/issues"
   },
-  "homepage": "https://github.com/TimUntersberger/babelpack#readme"
+  "bin": "./index.js",
+  "homepage": "https://github.com/TimUntersberger/babelpack#readme",
+  "dependencies": {
+    "@babel/core": "^7.1.2",
+    "chalk": "^2.4.1",
+    "chokidar": "^2.0.4",
+    "commander": "^2.18.0",
+    "prog": "^1.0.0",
+    "which": "^1.3.1"
+  }
 }
