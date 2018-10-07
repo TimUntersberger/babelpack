@@ -27,8 +27,8 @@ prog
   )
   .parse(process.argv);
 
-const srcDir = path.join(__dirname, prog.srcDir || "src");
-const outDir = path.join(__dirname, prog.outDir || "dist");
+const srcDir = prog.srcDir || "src";
+const outDir = prog.outDir || "dist";
 const rootFile = prog.rootFile || "index.js";
 
 let nodeProcess = null;
