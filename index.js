@@ -76,7 +76,7 @@ async function transformFile(filePath) {
       );
       resolve();
     } catch (error) {
-      reject(err);
+      reject(error);
     }
   });
 }

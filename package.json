@@ -1,6 +1,6 @@
 {
   "name": "babelpack",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Watches folder for changes and transforms it then executes a file",
   "main": "index.js",
   "scripts": {
