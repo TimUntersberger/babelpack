@@ -2,7 +2,7 @@
 
 const babel = require("@babel/core");
 const path = require("path");
-const fs = require("fs");
+const fs = require("fs-extra");
 const chalk = require("chalk").default;
 const which = require("which");
 const { spawn } = require("child_process");
@@ -14,6 +14,11 @@ prog
   .option(
     "-d, --out-dir [path]",
     "The relative path to the directory where the transformed files get saved"
+  )
+  .option("-f --file [path]", "The relative path to the source file")
+  .option(
+    "-D, --delete-dist",
+    "Delete the out folder before transforming the files"
   )
   .option(
     "-s, --src-dir [path]",
@@ -28,12 +33,24 @@ prog
     "Don't clear the screen after every compilation"
   )
   .parse(process.argv);
-const srcDir = path.normalize(path.join(process.cwd(), prog.srcDir || "src"));
-const outDir = path.normalize(path.join(process.cwd(), prog.outDir || "dist"));
+
+if (prog.srcDir && prog.file) {
+  console.log(
+    `${chalk.red("ERROR:")} You can only specify either --file or --src-dir!`
+  );
+}
+
+const srcFile = path.join(process.cwd(), prog.file || "null");
+const srcDir = path.join(process.cwd(), prog.srcDir || "src");
+const outDir = path.join(process.cwd(), prog.outDir || "dist");
 const rootFile = path.join(outDir, prog.rootFile || "index.js");
 
 let nodeProcess = null;
 let nodeLocation = which.sync("node");
+
+if (prog.deleteDist) {
+  fs.removeSync(outDir);
+}
 
 if (!fs.existsSync(srcDir)) {
   console.log(
@@ -54,6 +71,12 @@ const log = message => {
 };
 
 function startProg() {
+  if (!fs.existsSync(rootFile)) {
+    console.log(
+      `${chalk.red("ERROR:")} File ${chalk.bold(rootFile)} doesn't exist!`
+    );
+    process.exit(0);
+  }
   nodeProcess = spawn(nodeLocation, [rootFile]);
   nodeProcess.stdout.pipe(process.stdout);
   nodeProcess.stderr.pipe(process.stderr);
@@ -61,22 +84,37 @@ function startProg() {
 }
 
 function convertSrcPathToOutPath(filePath) {
-  return path
-    .join(outDir, filePath.replace(srcDir, ""))
-    .replace(/\.tsx?/, ".js");
+  return prog.file
+    ? path.join(outDir, path.basename(srcFile).replace(/.tsc?/, ".js"))
+    : path.join(outDir, filePath.replace(srcDir, "")).replace(/\.tsx?/, ".js");
+}
+
+function createDirectories(dir) {
+  try {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+  } catch (error) {
+    createDirectories(path.dirname(dir));
+  }
 }
 
 async function transformFile(filePath) {
   return new Promise((resolve, reject) => {
     const buffer = fs.readFileSync(filePath);
+    const outPath = convertSrcPathToOutPath(filePath);
+    let transformedCode = null;
     try {
-      fs.writeFileSync(
-        convertSrcPathToOutPath(filePath),
-        babel.transform(buffer, { filename: filePath }).code
-      );
-      resolve();
+      transformedCode = babel.transform(buffer, { filename: filePath }).code;
     } catch (error) {
       reject(error);
+    }
+    if (transformedCode) {
+      try {
+        fs.writeFileSync(outPath, transformedCode);
+      } catch (error) {
+        createDirectories(path.dirname(outPath));
+        fs.writeFileSync(outPath, transformedCode);
+      }
+      resolve();
     }
   });
 }
